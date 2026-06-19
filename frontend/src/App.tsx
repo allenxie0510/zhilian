@@ -65,11 +65,13 @@ function App() {
   }, []);
 
   const handleNewNote = useCallback(() => {
+    console.log('[DEBUG] handleNewNote triggered');
     setSelectedNode(null);
     setRightPanel('editor');
   }, []);
 
   const handleAskPanel = useCallback(() => {
+    console.log('[DEBUG] handleAskPanel triggered');
     setRightPanel('ask');
   }, []);
 
@@ -80,7 +82,7 @@ function App() {
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <header className="h-14 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4 flex-shrink-0">
+      <header className="h-14 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4 flex-shrink-0 z-10">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-white">
             <span className="text-blue-400">知</span>链
