@@ -111,7 +111,7 @@ RELATION_PATTERNS: list[tuple[str, RelationType]] = [
 
 
 def _heuristic_extract(text: str) -> AIExtractResponse:
-    """Simple keyword + pattern based extraction for fallback."""
+    """Multi-strategy heuristic extraction: keyword + co-occurrence + containment."""
     entities: list[AIEntity] = []
     seen_names: set[str] = set()
 
@@ -122,7 +122,7 @@ def _heuristic_extract(text: str) -> AIExtractResponse:
                 seen_names.add(name)
                 entities.append(AIEntity(name=name, type=ntype))
 
-    # Extract person names (Chinese: 2-3 chars, or English names)
+    # Extract person names
     person_pattern = re.compile(
         r"(?:作者[：:]\s*|发布者[：:]\s*|演讲者[：:]\s*|创始人[：:]\s*|"
         r"作者是|by\s+)([A-Z][a-z]+(?:\s[A-Z][a-z]+)?|[\u4e00-\u9fff]{2,3})"
@@ -141,21 +141,56 @@ def _heuristic_extract(text: str) -> AIExtractResponse:
             seen_names.add(name)
             entities.append(AIEntity(name=name, type=NodeType.topic))
 
-    # Build relations based on proximity
+    if not entities:
+        return AIExtractResponse(entities=[], relations=[])
+
+    # ── Multi-strategy relation inference ──
     relations: list[AIRelation] = []
     entity_names = [e.name for e in entities]
+    seen_pairs: set[tuple[str, str, str]] = set()
 
-    for sentence in re.split(r"[。；\n]", text):
+    def add_rel(src: str, tgt: str, rtype: RelationType) -> None:
+        key = (src, tgt, rtype.value)
+        if key not in seen_pairs and src != tgt:
+            seen_pairs.add(key)
+            relations.append(AIRelation(source=src, target=tgt, type=rtype))
+
+    # Strategy 1: Sentence-level trigger words
+    sentences = re.split(r"[。；\n]", text)
+    for sentence in sentences:
+        ents_in_sentence = [n for n in entity_names if n in sentence]
+        if len(ents_in_sentence) < 2:
+            continue
         for rel_pattern, rel_type in RELATION_PATTERNS:
-            rel_match = re.search(rel_pattern, sentence)
-            if rel_match:
-                # try to find 2 entities in this sentence
-                found = [n for n in entity_names if n in sentence and n != rel_match.group(0)]
-                if len(found) >= 2:
-                    relations.append(AIRelation(
-                        source=found[0], target=found[1], type=rel_type
-                    ))
+            if re.search(rel_pattern, sentence):
+                for i in range(len(ents_in_sentence)):
+                    for j in range(i + 1, len(ents_in_sentence)):
+                        add_rel(ents_in_sentence[i], ents_in_sentence[j], rel_type)
                 break
+
+    # Strategy 2: Co-occurrence — entities in same sentence are likely related
+    for sentence in sentences:
+        ents_in_sentence = [n for n in entity_names if n in sentence]
+        if len(ents_in_sentence) >= 2:
+            # Link first entity to each other in the sentence
+            for j in range(1, min(len(ents_in_sentence), 4)):
+                add_rel(ents_in_sentence[0], ents_in_sentence[j], RelationType.references)
+
+    # Strategy 3: Name containment — "深度学习" belongs_to "机器学习"
+    for a_name in entity_names:
+        for b_name in entity_names:
+            if a_name != b_name and a_name in b_name and len(a_name) >= 2:
+                add_rel(b_name, a_name, RelationType.belongs_to)
+
+    # Strategy 4: Same-category entities in same note are similar
+    entity_by_type: dict[NodeType, list[str]] = {}
+    for e in entities:
+        entity_by_type.setdefault(e.type, []).append(e.name)
+    for names in entity_by_type.values():
+        if len(names) >= 2:
+            for i in range(len(names)):
+                for j in range(i + 1, min(i + 3, len(names))):
+                    add_rel(names[i], names[j], RelationType.similar_to)
 
     return AIExtractResponse(entities=entities, relations=relations)
 
