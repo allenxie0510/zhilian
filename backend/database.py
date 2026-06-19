@@ -1,19 +1,26 @@
-"""SQLite database for note metadata — using sqlmodel."""
+"""Supabase PostgreSQL database — notes metadata and graph persistence.
+
+Replaces the old SQLite + JSON-file approach. Everything survives redeploys.
+"""
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlmodel import Field, Session, SQLModel, create_engine, select, text
 
-DATA_DIR = Path(os.environ.get("ZHILIAN_DATA_DIR", "./data"))
-DATABASE_URL = f"sqlite:///{DATA_DIR / 'zhilian.db'}"
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is required")
 
-engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URL, echo=False, pool_size=5, max_overflow=5)
+
+
+# ── Notes table ────────────────────────────────────────────
 
 
 class NoteRow(SQLModel, table=True):
@@ -27,8 +34,36 @@ class NoteRow(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.now)
 
 
+# ── Graph nodes table ──────────────────────────────────────
+
+
+class GraphNodeRow(SQLModel, table=True):
+    __tablename__ = "graph_nodes"
+    id: str = Field(primary_key=True)
+    name: str = Field(index=True)
+    type: str
+    source_note_id: str = Field(index=True)
+    created_at: str
+    metadata_json: str = Field(default="{}")
+
+
+# ── Graph edges table ──────────────────────────────────────
+
+
+class GraphEdgeRow(SQLModel, table=True):
+    __tablename__ = "graph_edges"
+    id: str = Field(primary_key=True)
+    source: str = Field(index=True)
+    target: str = Field(index=True)
+    type: str
+    source_note_id: str
+    confidence: float = Field(default=1.0)
+
+
+# ── Init ───────────────────────────────────────────────────
+
+
 def init_db() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
     SQLModel.metadata.create_all(engine)
 
 
@@ -36,13 +71,12 @@ def get_session() -> Session:
     return Session(engine)
 
 
-# ── Helper to convert between Row and Pydantic model ──
+# ── Note helpers ───────────────────────────────────────────
 
 from models import Note, NoteCreate, NoteUpdate, NoteType
 
 
 def row_to_note(row: NoteRow) -> Note:
-    import json
     return Note(
         id=row.id,
         title=row.title,
@@ -54,20 +88,7 @@ def row_to_note(row: NoteRow) -> Note:
     )
 
 
-def note_to_row(note: NoteCreate) -> NoteRow:
-    import json
-    return NoteRow(
-        title=note.title,
-        content=note.content,
-        type=note.type.value,
-        tags_json=json.dumps(note.tags, ensure_ascii=False),
-    )
-
-
-# ── CRUD operations ──
-
 def create_note(data: NoteCreate) -> Note:
-    import json
     with get_session() as session:
         row = NoteRow(
             title=data.title,
@@ -95,7 +116,6 @@ def list_notes(limit: int = 50, offset: int = 0) -> list[Note]:
 
 
 def update_note(note_id: str, data: NoteUpdate) -> Optional[Note]:
-    import json
     with get_session() as session:
         row = session.get(NoteRow, note_id)
         if not row:
@@ -129,7 +149,7 @@ def search_notes(query: str, limit: int = 20) -> list[Note]:
         stmt = (
             select(NoteRow)
             .where(
-                (NoteRow.title.contains(query)) | (NoteRow.content.contains(query))
+                (NoteRow.title.ilike(pattern)) | (NoteRow.content.ilike(pattern))
             )
             .order_by(NoteRow.updated_at.desc())
             .limit(limit)

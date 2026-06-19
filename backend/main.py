@@ -16,11 +16,8 @@ from graph_store import graph_store
 async def lifespan(app: FastAPI):
     """Startup & shutdown events."""
     init_db()
-    graph_store.load()
-    print(f"📊 Graph loaded: {graph_store.stats()}")
+    print(f"📊 Supabase connected, graph: {graph_store.stats()}")
     yield
-    graph_store.save()
-    print("💾 Graph saved.")
 
 
 app = FastAPI(
