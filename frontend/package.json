@@ -12,6 +12,8 @@
   "dependencies": {
     "autoprefixer": "^10.5.0",
     "cytoscape": "^3.34.0",
+    "cytoscape-dagre": "^2.5.0",
+    "dagre": "^0.8.5",
     "postcss": "^8.5.15",
     "react": "^19.2.6",
     "react-cytoscapejs": "^2.0.0",
