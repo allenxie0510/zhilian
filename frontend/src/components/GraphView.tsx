@@ -111,6 +111,7 @@ export default function GraphView({ data, onNodeClick, selectedNodeId }: Props) 
           style: {
             'width': 'data(edgeWidth)',
             'line-color': 'data(edgeColor)',
+            'opacity': 0.5,
             'target-arrow-color': 'data(edgeColor)',
             'target-arrow-shape': 'triangle',
             'arrow-scale': 0.7,
