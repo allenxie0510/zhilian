@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://YOUR_RAILWAY_APP.railway.app/api/$1"
+      "destination": "https://zhilian-production.up.railway.app/api/$1"
     }
   ]
 }

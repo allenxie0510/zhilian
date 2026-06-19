@@ -1,6 +1,8 @@
 /* ── API client for 知链 backend ── */
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// In dev, Vite proxy forwards /api to localhost:8000.
+// In prod (Vercel), vercel.json rewrites forward /api to Railway.
+const BASE_URL = '';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
