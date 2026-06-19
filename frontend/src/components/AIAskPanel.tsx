@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { api } from '../api/client';
-import type { QuestionResponse } from '../types';
+
 
 export default function AIAskPanel() {
   const [question, setQuestion] = useState('');

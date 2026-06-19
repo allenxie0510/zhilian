@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { api } from '../api/client';
-import type { GraphNode, NodeType } from '../types';
+import type { GraphNode } from '../types';
 import { NODE_COLORS, NODE_TYPE_LABELS } from '../types';
 
 interface Props {

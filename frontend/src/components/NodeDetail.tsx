@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
-import type { GraphNode, GraphData, Note } from '../types';
-import { NODE_COLORS, NODE_TYPE_LABELS, RELATION_TYPE_LABELS } from '../types';
+import type { GraphNode, Note } from '../types';
+import { NODE_COLORS, NODE_TYPE_LABELS } from '../types';
 
 interface Props {
   node: GraphNode | null;

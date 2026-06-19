@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { api } from '../api/client';
-import type { Note, NodeType } from '../types';
+import type { Note } from '../types';
 
 interface Props {
   onNoteCreated: (note: Note) => void;
