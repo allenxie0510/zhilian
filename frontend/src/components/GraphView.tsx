@@ -67,10 +67,6 @@ export default function GraphView({ data, onNodeClick, selectedNodeId }: Props) 
             'height': nSize,
             'border-width': 2,
             'border-color': '#1e293b',
-            // Subtle glow
-            'shadow-blur': 6,
-            'shadow-color': '#00000040',
-            'shadow-opacity': 0.3,
             'transition-property': 'width, height, font-size, border-width',
             'transition-duration': 200,
           },
@@ -104,9 +100,6 @@ export default function GraphView({ data, onNodeClick, selectedNodeId }: Props) 
             'border-color': '#fbbf24',
             'border-width': 4,
             'z-index': 999,
-            'shadow-blur': 16,
-            'shadow-color': '#fbbf24',
-            'shadow-opacity': 0.5,
           },
         },
         // Dim non-neighbor nodes when highlighted
