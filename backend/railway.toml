@@ -1,0 +1,12 @@
+# Railway 后端部署配置
+# 注册 https://railway.app → New Project → Deploy from GitHub
+
+[build]
+builder = "nixpacks"
+buildCommand = "pip install -r requirements.txt"
+
+[deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"
+
+[service]
+port = 8000
